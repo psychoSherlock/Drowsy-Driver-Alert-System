@@ -3,21 +3,22 @@ from imutils import face_utils
 from pygame import mixer
 import imutils
 import dlib
-import geocoder
 import cv2
 from twilio.rest import Client
 import pyglet
 import sys
+import winsdk.windows.devices.geolocation as wdg
+import asyncio
+import threading
 
 
 driver = input("Drivers name: ")  # Change this
-contact_list = [""]  # Change this
+contact_list = ["8921511945"]  # Change this
 
 
 mixer.init()
 mixer.music.load("music.wav")
-
-g_maps_url = "http://maps.google.com/?q={},{}"
+foo = pyglet.media.load("alarm3.mp3")
 
 
 def eye_aspect_ratio(eye):
@@ -28,22 +29,27 @@ def eye_aspect_ratio(eye):
     return ear
 
 
-def get_current_location(g_maps_url):
-    g = geocoder.ip('me')
-    # lat = g.latlng[0] + 2.64
-    lat = g.latlng[0]
-    # long = g.latlng[1] + 1.3424
-    long = g.latlng[1]
-    # print(lat, long)
-    current_location = g_maps_url.format(lat, long)
+def get_current_location():
+    async def getCoords():
+        locator = wdg.Geolocator()
+        pos = await locator.get_geoposition_async()
+        return [pos.coordinate.latitude, pos.coordinate.longitude]
+
+    def getLoc():
+        return asyncio.run(getCoords())
+    location = getLoc()
+    lat = location[0]
+    lon = location[1]
+
+    current_location = f"http://maps.google.com/?q={lat},{lon}"
     return current_location
 
 
 def send_alert_message(driver, contact_list, current_location):
     # twilio credentials
-    account_sid = "**********************"
-    auth_token = "**********************"
-    sender = "+1*********"  # Fetch Phone number and put it here
+    account_sid = "********************"
+    auth_token = "******************"
+    sender = "+1**********"  # Fetch Phone number and put it here
     message = f"{driver} doesn't seem okay! Last known location: {current_location}"
 
     client = Client(account_sid, auth_token)
@@ -62,18 +68,19 @@ def onDriverDrowsy():
     global alerted
     if alerted >= 3:  # Modify this if required. Change to following line to add more alert, like final sure death alert.
         sys.exit()
-    foo = pyglet.media.load("alarm3.mp3")
     foo.play()
+
     print('Drowsyyyy!')  # For debugging
-    current_location = get_current_location(g_maps_url=g_maps_url)
+    current_location = get_current_location()
+    print('Location feched!!')
     send_alert_message(driver, contact_list, current_location)
-    print(current_location)
+    print('Message sent!')
     alerted += 1
 
 
 thresh = 0.25
 drowsy = 20
-fatal = 50
+fatal = 50  # Change
 detect = dlib.get_frontal_face_detector()
 predict = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
@@ -102,9 +109,9 @@ while True:
             flag += 1
             print(flag)
             if flag >= fatal:
-                cv2.putText(frame, "*****WAKE UP!!!*****", (10, 30),
+                cv2.putText(frame, "*****WAKE UP! Message sent!*****", (10, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-                cv2.putText(frame, "*****WAKE UP!!!*****", (10, 325),
+                cv2.putText(frame, "*****WAKE UP!!! Message sent*****", (10, 325),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
                 onDriverDrowsy()
 
@@ -113,7 +120,9 @@ while True:
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                 cv2.putText(frame, "*****ALERT!*****", (10, 325),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                mixer.music.play()
+                # mixer.music.play()
+                threading.Thread(target=mixer.music.play).start()
+
         else:
             flag = 0
     cv2.imshow("Frame", frame)
