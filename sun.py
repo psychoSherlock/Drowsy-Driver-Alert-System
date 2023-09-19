@@ -44,7 +44,7 @@ driver_label.pack(pady=10)
 root.mainloop()
 
 
-contact_list = ["8139833169",]  # Change this
+contact_list = ["*********",]  # Change this
 
 
 mixer.init()
@@ -115,9 +115,9 @@ def get_current_location():
 
 def send_alert_message(driver, contact_list, current_location):
     # twilio credentials
-    account_sid = "ACb8596146689ef8a86cc220edd0dbc18d"
-    auth_token = "7d8a20b0d44389724095f260362f00df"
-    sender = "+16073576749"  # Fetch Phone number and put it here
+    account_sid = "***********************"
+    auth_token = "************************"
+    sender = "+************"  # Fetch Phone number and put it here
     message = f"{driver} doesn't seem okay! Last known location: {current_location}"
 
     client = Client(account_sid, auth_token)
